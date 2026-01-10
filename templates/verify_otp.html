@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5 animate-fade">
+    <h2 class="text-center mb-4 fw-bold">📨 Enter OTP</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" class="shadow-sm p-4 bg-light rounded">
+        <input type="hidden" name="purpose" value="{{ request.args.get('purpose') }}">
+        <div class="mb-3">
+            <label class="form-label fw-semibold text-dark">Enter the 6-digit OTP sent to your email:</label>
+            <input type="text" name="otp" class="form-control" placeholder="e.g. 123456" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">✅ Verify OTP</button>
+    </form>
+</div>
+
+<style>
+.animate-fade {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}

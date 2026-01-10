@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5 animate-fade">
+    <h2 class="text-center fw-bold mb-4">➕ Add New Password</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" class="shadow-sm p-4 bg-light rounded">
+        <input type="hidden" name="generate" id="generateField" value="false">
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold text-dark">🌐 Site Name</label>
+            <input
+                type="text"
+                class="form-control"
+                name="site"
+                placeholder="e.g. gmail.com"
+                value="{{ site or '' }}"
+                required
+            >
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold text-dark">👤 Site Username / Email</label>
+            <input
+                type="text"
+                class="form-control"
+                name="username"
+                value="{{ site_username or '' }}"
+                required
+            >
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold text-dark">🔑 Password</label>
+
+            <div class="input-group">
+                <input
+                    type="text"
+                    class="form-control"
+                    name="password"
+                    id="passwordInput"
+                    value="{{ password or '' }}"
+                    required
+                >
+
+                <button
+                    type="button"
+                    class="btn btn-outline-warning"
+                    onclick="generatePassword()"
+                >
+                    🔁 Generate
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-info"
+                    onclick="copyPassword(this)"
+                >
+                    📋
+                </button>
+            </div>
+
+            <div id="strengthMessage" class="form-text mt-1 ms-1"></div>
+        </div>
+
+        <button
+            type="submit"
+            class="btn btn-success w-100 mt-3"
+            onclick="document.getElementById('generateField').value = 'false'"
+        >
+            💾 Save Password
+        </button>
+    </form>
+</div>
+
+<script>
+function generatePassword() {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    let generatedPassword = "";
+
+    for (let i = 0; i < 12; i++) {
+        const randomIndex = Math.floor(Math.random() * charset.length);
+        generatedPassword += charset[randomIndex];
+    }
+
+    const passwordInput = document.getElementById("passwordInput");
+    passwordInput.value = generatedPassword;
+    passwordInput.dispatchEvent(new Event("input"));
+}
+
+async function copyPassword(btn) {
+    const input = document.getElementById("passwordInput");
+    try {
+        await navigator.clipboard.writeText(input.value);
+        btn.innerText = "✅";
+        setTimeout(() => btn.innerText = "📋", 1000);
+    } catch {
+        alert("Failed to copy password");
+    }
+}
+</script>
+
+<style>
+.animate-fade {
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %}
