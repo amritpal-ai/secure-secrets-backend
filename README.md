@@ -5,6 +5,16 @@ Designed so that **even the admin cannot view user passwords**, following **zero
 
 ---
 
+## 🌐 Live Deployment
+
+🚀 **Live Website:**  
+👉 https://password-manager-kopq.onrender.com
+
+> A fully deployed, production-ready version of this password manager hosted on Render and backed by a Neon PostgreSQL database.
+
+---
+
+
 ## ✨ Key Features
 
 ### 👤 User & Authentication
@@ -86,7 +96,8 @@ password-manager/
 
 ---
 
-## 🚀 Setup & Run
+## 🛠️ Local Development Setup
+
 
 ### Install Dependencies
 ```bash
