@@ -34,9 +34,6 @@ def add_no_cache_headers(response):
     response.headers["Expires"] = "0"
     return response
 
-
-
-# ---------------- REGISTER ----------------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -53,11 +50,20 @@ def register():
         session["otp_user"] = username
         session["otp_password"] = password
 
-        if send_otp(username, otp):
-            flash("OTP sent to your email", "info")
-            return redirect(url_for("verify_otp"))
-        else:
-            flash("Failed to send OTP", "danger")
+        try:
+            # Attempt to send OTP email
+            if send_otp(username, otp):
+                flash("OTP sent to your email", "info")
+                return redirect(url_for("verify_otp"))
+            else:
+                flash("Failed to send OTP", "danger")
+                return redirect("/register")
+
+        except Exception as e:
+            # Prevent crash + log error in Render logs
+            print("REGISTER EMAIL ERROR:", e)
+
+            flash("Email service failed. Please try again later.", "danger")
             return redirect("/register")
 
     return render_template("register.html")
