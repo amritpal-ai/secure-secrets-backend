@@ -11,15 +11,12 @@ from cryptography.fernet import Fernet
 
 import os
 from dotenv import load_dotenv
+import threading
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
-
-# === EMAIL SETTINGS ===
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
 
 
 # ---------------- HOME ----------------
@@ -27,20 +24,24 @@ EMAIL_PASS = os.getenv("EMAIL_PASS")
 def home():
     return render_template("home.html")
 
+
 @app.after_request
 def add_no_cache_headers(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
-import threading
 
-<<<<<<< HEAD
-=======
+
+# ---------------- EMAIL (ASYNC) ----------------
 def send_email_async(username, otp):
-    send_otp(username, otp)
+    try:
+        send_otp(username, otp)
+    except Exception as e:
+        print("EMAIL ERROR:", e)
 
->>>>>>> 76fe4fca58fbb9c941b03842da44c1a228a5a6f1
+
+# ---------------- REGISTER ----------------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -57,29 +58,11 @@ def register():
         session["otp_user"] = username
         session["otp_password"] = password
 
-<<<<<<< HEAD
-        try:
-            # Attempt to send OTP email
-            if send_otp(username, otp):
-                flash("OTP sent to your email", "info")
-                return redirect(url_for("verify_otp"))
-            else:
-                flash("Failed to send OTP", "danger")
-                return redirect("/register")
-
-        except Exception as e:
-            # Prevent crash + log error in Render logs
-            print("REGISTER EMAIL ERROR:", e)
-
-            flash("Email service failed. Please try again later.", "danger")
-            return redirect("/register")
-=======
-        # ✅ Run email in background
+        # ✅ Async email (prevents timeout)
         threading.Thread(target=send_email_async, args=(username, otp)).start()
 
         flash("OTP sent to your email", "info")
         return redirect(url_for("verify_otp"))
->>>>>>> 76fe4fca58fbb9c941b03842da44c1a228a5a6f1
 
     return render_template("register.html")
 
@@ -101,7 +84,7 @@ def login():
         encrypted_key = get_encryption_key(username)
         vault_key = decrypt_key_with_password(encrypted_key, password)
 
-        session["vault_key"] = vault_key  # ✅ bytes
+        session["vault_key"] = vault_key
 
         return redirect(url_for("dashboard"))
 
@@ -123,7 +106,7 @@ def dashboard():
         return redirect(url_for("login"))
 
     email = session["username"]
-    vault_key = session["vault_key"]        # ✅ NO encode
+    vault_key = session["vault_key"]
     fernet = Fernet(vault_key)
 
     query = request.args.get("q", "").lower()
@@ -171,7 +154,7 @@ def add_pass():
     return render_template("add_pass.html")
 
 
-# ---------------- EDIT PASSWORD / USERNAME ----------------
+# ---------------- EDIT PASSWORD ----------------
 @app.route("/edit_pass/<entry_id>/<field>", methods=["GET", "POST"])
 def edit_pass(entry_id, field):
     if "username" not in session or "vault_key" not in session:
@@ -253,11 +236,11 @@ def forgot_pass():
         session["otp_type"] = "forgot_pass"
         session["otp_user"] = username
 
-        if send_otp(username, otp):
-            flash("OTP sent to your email", "info")
-            return redirect("/verify_otp")
-        else:
-            flash("Failed to send OTP", "danger")
+        # ✅ Async email
+        threading.Thread(target=send_email_async, args=(username, otp)).start()
+
+        flash("OTP sent to your email", "info")
+        return redirect("/verify_otp")
 
     return render_template("forgot_pass.html")
 
@@ -271,7 +254,6 @@ def verify_otp():
         actual_otp = session.get("otp_code")
         email = session.get("otp_user")
 
-        # Basic validation
         if not entered_otp or not actual_otp or not flow or not email:
             flash("Session expired. Please try again.", "danger")
             return redirect("/login")
@@ -280,7 +262,6 @@ def verify_otp():
             flash("Invalid OTP.", "danger")
             return render_template("verify_otp.html")
 
-        # ---------- FLOW HANDLING ----------
         if flow == "register":
             password = session.get("otp_password")
             if not password:
@@ -293,15 +274,11 @@ def verify_otp():
 
             add_user(email, hashed, encrypted_key)
 
-            # Clear everything for register
             session.clear()
             return redirect("/login")
 
         elif flow == "forgot_pass":
-            # IMPORTANT: keep reset_username
             session["reset_username"] = email
-
-            # Remove only OTP-related session data
             session.pop("otp_code", None)
             session.pop("otp_type", None)
             session.pop("otp_user", None)
@@ -314,7 +291,6 @@ def verify_otp():
             return redirect("/login")
 
     return render_template("verify_otp.html")
-
 
 
 # ---------------- NEW PASSWORD ----------------
@@ -341,4 +317,4 @@ def newpass():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
