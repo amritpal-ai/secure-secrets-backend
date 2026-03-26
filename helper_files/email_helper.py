@@ -1,34 +1,50 @@
-# helper_files/email_helper.py
 
-import smtplib
 import os
-from email.message import EmailMessage
+import random
+import requests
 from dotenv import load_dotenv
 
-load_dotenv()  # Load environment variables from .env
+load_dotenv()
 
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
-import random
 
+# ---------------- OTP GENERATOR ----------------
 def generate_otp(length=6):
-    """Generate a numeric OTP of given length (default 6 digits)."""
+    """Generate a numeric OTP"""
     return ''.join([str(random.randint(0, 9)) for _ in range(length)])
 
 
+# ---------------- SEND OTP (RESEND) ----------------
 def send_otp(to_email, otp):
-    msg = EmailMessage()
-    msg["Subject"] = "Your OTP for Password Manager"
-    msg["From"] = EMAIL_USER
-    msg["To"] = to_email
-    msg.set_content(f"Hello,\n\nYour OTP is: {otp}\nIt is valid for 10 minutes.\n\n- Password Manager")
-
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(EMAIL_USER, EMAIL_PASS)
-            smtp.send_message(msg)
-        return True
+        url = "https://api.resend.com/emails"
+
+        headers = {
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "from": "onboarding@resend.dev",  # default test sender (no setup needed)
+            "to": [to_email],
+            "subject": "Your OTP for Password Manager",
+            "html": f"""
+                <h2>Your OTP is: {otp}</h2>
+                <p>This OTP is valid for 10 minutes.</p>
+                <br>
+                <p>- Secure Password Manager</p>
+            """
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+
+        if response.status_code == 200:
+            return True
+        else:
+            print("❌ Resend Error:", response.text)
+            return False
+
     except Exception as e:
         print("❌ Email sending failed:", e)
         return False

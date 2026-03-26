@@ -33,7 +33,14 @@ def add_no_cache_headers(response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+import threading
 
+<<<<<<< HEAD
+=======
+def send_email_async(username, otp):
+    send_otp(username, otp)
+
+>>>>>>> 76fe4fca58fbb9c941b03842da44c1a228a5a6f1
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -50,6 +57,7 @@ def register():
         session["otp_user"] = username
         session["otp_password"] = password
 
+<<<<<<< HEAD
         try:
             # Attempt to send OTP email
             if send_otp(username, otp):
@@ -65,6 +73,13 @@ def register():
 
             flash("Email service failed. Please try again later.", "danger")
             return redirect("/register")
+=======
+        # ✅ Run email in background
+        threading.Thread(target=send_email_async, args=(username, otp)).start()
+
+        flash("OTP sent to your email", "info")
+        return redirect(url_for("verify_otp"))
+>>>>>>> 76fe4fca58fbb9c941b03842da44c1a228a5a6f1
 
     return render_template("register.html")
 

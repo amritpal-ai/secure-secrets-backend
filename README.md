@@ -1,33 +1,49 @@
-# 🔐 Secure Web-Based Password Manager
+# 🔐 Secure Secrets Backend
 
-A **production-ready, secure, multi-user Password Manager Web Application** built using **Flask** and modern cryptography practices.  
-Designed so that **even the admin cannot view user passwords**, following **zero-knowledge security principles**.
+A **production-grade, multi-tenant backend system** for securely storing and managing sensitive secrets.  
+Built with a **zero-knowledge security model**, ensuring that **stored secrets are never readable by the server or administrators**.
+
+This system is designed as a **general-purpose secure backend**, with password management being one possible use case.
 
 ---
 
-## ✨ Key Features
+## 🌐 Live Deployment
 
-### 👤 User & Authentication
-- ✅ User registration with **email OTP verification**
-- 🔐 Secure login with **bcrypt-hashed master password**
-- 🔁 **Forgot password** flow with OTP verification
-- 🔄 Secure **master password change**
+🚀 **Live Service:**  
+👉 https://password-manager-kopq.onrender.com
 
-### 🗄️ Password Vault
-- 🔐 Vault-level encryption using **Fernet**
-- 🧠 Per-user encryption key protected by master password
-- ➕ Add new credentials (manual or generated)
-- 🔍 Search credentials by site name
-- ✏️ Update saved passwords or usernames
-- 🗑️ Delete vault entries
-- 📋 One-click password copy
+> Deployed on a Linux-based production environment with a managed PostgreSQL database.
+
+---
+
+## 🎯 System Capabilities
+
+### 👤 Authentication & Identity
+- User registration with **email-based OTP verification**
+- Secure authentication using **bcrypt-hashed credentials**
+- Password reset flow without loss of encrypted data
+- Session-based access with secure validation
+
+### 🗄️ Encrypted Secrets Storage
+- Per-user encrypted secret vaults
+- Secrets encrypted at rest using **strong symmetric cryptography**
+- User-specific encryption keys protected by user credentials
+- Secure secret creation, update, search, and deletion
 
 ### 🔐 Security Architecture
-- ❌ Admin **cannot** read stored passwords
-- 🔑 Random vault key encrypted using master password
-- 🔄 Vault remains accessible even after password reset
-- 🧂 Password hashing using **bcrypt**
-- 🔒 All sensitive data encrypted at rest
+- **Zero-knowledge design** — server cannot read stored secrets
+- Encryption keys never stored in plaintext
+- Vault access preserved even after credential resets
+- Protection against database leaks exposing sensitive data
+
+---
+
+## 🧱 Backend Architecture
+
+- Clear separation of authentication, cryptography, and data layers
+- Relational database design optimized for multi-user access
+- Centralized error handling and request validation
+- Environment-based configuration for secure deployments
 
 ---
 
@@ -41,24 +57,24 @@ Designed so that **even the admin cannot view user passwords**, following **zero
 - cryptography (Fernet)
 
 ### Database
-- PostgreSQL (Neon – serverless cloud DB)
+- PostgreSQL (Neon – serverless cloud database)
 
-### Frontend
-- HTML5  
-- CSS3  
-- Jinja2 Templates  
+### Frontend (minimal)
+- HTML5
+- CSS3
+- Jinja2 templates
 
 ### Deployment
 - Gunicorn
-- Render / Railway compatible
-- `.env` based secrets management
+- Linux-based hosting (Render / Railway compatible)
+- `.env`-based secrets management
 
 ---
 
 ## 🗂️ Project Structure
 
 ```text
-password-manager/
+secure-secrets-backend/
 ├── app.py
 ├── helper_files/
 │   ├── db.py
@@ -73,32 +89,30 @@ password-manager/
 
 ---
 
-## 🔐 Security Design (Zero-Knowledge)
+## 🔐 Security Model (High-Level)
 
-- Master passwords are **hashed**, never stored
-- Vault encryption keys are:
+- User credentials are **hashed**, never stored
+- Encryption keys are:
   - Randomly generated
-  - Encrypted using the master password
-- Even after a password reset:
-  - Vault remains accessible
-  - Encryption key stays intact
-- Database leaks **do not expose plaintext passwords**
+  - Encrypted using user credentials
+- Secrets remain protected even after password resets
+- Compromised database data does **not** reveal plaintext secrets
 
 ---
 
-## 🚀 Setup & Run
+## 🛠️ Local Development
 
-### Install Dependencies
+### Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### Run Locally
+### Run locally
 ```bash
 python app.py
 ```
 
-### Run in Production
+### Production server
 ```bash
 gunicorn app:app
 ```
@@ -107,7 +121,7 @@ gunicorn app:app
 
 ## 📄 License
 
-**MIT License**
+MIT License
 
 Built by **Amritpal Singh**  
-Security-focused full-stack project 🚀
+Backend-focused secure systems project
