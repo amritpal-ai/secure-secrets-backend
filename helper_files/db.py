@@ -7,9 +7,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------------- DATABASE SETUP ----------------
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///passwords.db")
 
-engine = create_engine(DATABASE_URL)
+# SQLite needs check_same_thread=False; PostgreSQL doesn't need it
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 Base = declarative_base()
 
@@ -31,7 +33,6 @@ class User(Base):
 class VaultEntry(Base):
     __tablename__ = "vault"
 
-    # ✅ AUTO-GENERATED UUID (CRITICAL FIX)
     id = Column(
         String,
         primary_key=True,
@@ -53,6 +54,12 @@ class VaultEntry(Base):
             name="unique_site_user_owner"
         ),
     )
+
+
+def init_db():
+    """Create all tables. Safe to call multiple times."""
+    Base.metadata.create_all(engine)
+
 
 # ---------------- USER FUNCTIONS ----------------
 def get_user_by_username(username):
@@ -93,11 +100,40 @@ def store_encryption_key(username, encrypted_key):
             user.encrypted_key = encrypted_key
             session.commit()
 
+
 # ---------------- VAULT FUNCTIONS ----------------
+
+class _VaultRow:
+    """Lightweight DTO so vault data travels safely outside the SQLAlchemy session."""
+    __slots__ = ("id", "site", "username", "password", "owner_email")
+
+    def __init__(self, id, site, username, password, owner_email):
+        self.id = id
+        self.site = site
+        self.username = username
+        self.password = password
+        self.owner_email = owner_email
+
+
 def get_vault_by_user(username):
+    """
+    Returns a list of plain dicts so entries are usable after the session closes.
+    BUG FIX: returning ORM objects from a closed session caused DetachedInstanceError.
+    """
     with SessionLocal() as session:
         user = session.query(User).filter(User.email == username).first()
-        return user.vault if user else []
+        if not user:
+            return []
+        return [
+            _VaultRow(
+                id=e.id,
+                site=e.site,
+                username=e.username,
+                password=e.password,
+                owner_email=e.owner_email
+            )
+            for e in user.vault
+        ]
 
 
 def add_vault_entry(site, username, password, owner_username):
@@ -144,8 +180,18 @@ def update_vault_field_by_id(entry_id, field, new_encrypted_value):
 
 
 def get_vault_entry_by_id(entry_id):
+    """Returns a plain _VaultRow DTO, safe to use after the session closes."""
     with SessionLocal() as session:
-        return session.query(VaultEntry).filter(VaultEntry.id == entry_id).first()
+        entry = session.query(VaultEntry).filter(VaultEntry.id == entry_id).first()
+        if not entry:
+            return None
+        return _VaultRow(
+            id=entry.id,
+            site=entry.site,
+            username=entry.username,
+            password=entry.password,
+            owner_email=entry.owner_email
+        )
 
 
 def delete_vault_entry_by_id(entry_id):

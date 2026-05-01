@@ -1,22 +1,26 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from helper_files.db import *
+from helper_files.db import init_db, get_user_by_username, get_encryption_key, \
+    get_vault_by_user, add_vault_entry, get_vault_entry_by_id, \
+    update_vault_field_by_id, delete_vault_entry_by_id, add_user, update_user_password
 from helper_files.secure_helper import (
     hash_password, check_password,
     encrypt_data, decrypt_data,
     generate_encryption_key, encrypt_key_with_password, decrypt_key_with_password
 )
-from helper_files.email_helper import *
-from helper_files.passgenerator import *
+from helper_files.email_helper import generate_otp, send_otp
+from helper_files.passgenerator import generate_password
 from cryptography.fernet import Fernet
 
 import os
 from dotenv import load_dotenv
-import threading
 
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY")
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-fallback-key-change-in-production")
+
+# Initialise DB tables on startup (safe to call every run)
+init_db()
 
 
 # ---------------- HOME ----------------
@@ -31,14 +35,6 @@ def add_no_cache_headers(response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
-
-
-# ---------------- EMAIL (ASYNC) ----------------
-def send_email_async(username, otp):
-    try:
-        send_otp(username, otp)
-    except Exception as e:
-        print("EMAIL ERROR:", e)
 
 
 # ---------------- REGISTER ----------------
@@ -58,10 +54,9 @@ def register():
         session["otp_user"] = username
         session["otp_password"] = password
 
-        # ✅ Async email (prevents timeout)
-        threading.Thread(target=send_email_async, args=(username, otp)).start()
+        send_otp(username, otp)
 
-        flash("OTP sent to your email", "info")
+        flash("OTP sent! Check your email — or the terminal window if running locally.", "info")
         return redirect(url_for("verify_otp"))
 
     return render_template("register.html")
@@ -76,7 +71,7 @@ def login():
 
         user = get_user_by_username(username)
         if not user or not check_password(password, user.hashed_password):
-            flash("Invalid credentials")
+            flash("Invalid credentials", "danger")
             return redirect(url_for("login"))
 
         session["username"] = username
@@ -236,10 +231,9 @@ def forgot_pass():
         session["otp_type"] = "forgot_pass"
         session["otp_user"] = username
 
-        # ✅ Async email
-        threading.Thread(target=send_email_async, args=(username, otp)).start()
+        send_otp(username, otp)
 
-        flash("OTP sent to your email", "info")
+        flash("OTP sent! Check your email — or the terminal window if running locally.", "info")
         return redirect("/verify_otp")
 
     return render_template("forgot_pass.html")
@@ -317,4 +311,4 @@ def newpass():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="127.0.0.1", port=5000)
